@@ -23,10 +23,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		switch command {
+		switch {
 
-		case "exit 0":
+		case command == "exit 0":
 			os.Exit(0)
+
+		case strings.HasPrefix(command, "echo"):
+			fmt.Fprint(os.Stdout, command[5:]+"\n")
+			fmt.Fprint(os.Stdout, "$ ")
 
 		default:
 			fmt.Fprintf(os.Stdout, "%s: command not found\n", command)
