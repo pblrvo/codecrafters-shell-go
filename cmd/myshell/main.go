@@ -22,10 +22,12 @@ func main() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		if command == "exit 0" {
+
+		switch command {
+		case "exit 0":
 			os.Exit(0)
+		default:
+			fmt.Printf("%s: command not found\n", cmd)
 		}
-		fmt.Fprintf(os.Stdout, "%s: command not found\n", command)
-		fmt.Fprint(os.Stdout, "$ ")
 	}
 }
