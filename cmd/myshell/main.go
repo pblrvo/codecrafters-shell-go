@@ -13,6 +13,7 @@ var _ = fmt.Fprint
 func main() {
 	fmt.Fprint(os.Stdout, "$ ")
 
+	builtinCommands := []string{"echo", "type", "exit"}
 	// Wait for user input
 	reader := bufio.NewReader(os.Stdin)
 
@@ -38,9 +39,25 @@ func main() {
 			fmt.Fprintf(os.Stdout, "%s\n", strings.Join(commands[1:], " "))
 			fmt.Fprint(os.Stdout, "$ ")
 
+		case "type":
+			if Contains(builtinCommands, commands[1]) {
+				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
+			} else {
+				fmt.Fprintf(os.Stdout, "%s: not found\n", commands[1])
+			}
+			fmt.Fprint(os.Stdout, "$ ")
 		default:
 			fmt.Fprintf(os.Stdout, "%s: command not found\n", commands[0])
 			fmt.Fprint(os.Stdout, "$ ")
 		}
 	}
+}
+
+func Contains(slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
