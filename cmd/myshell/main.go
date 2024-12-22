@@ -24,10 +24,13 @@ func main() {
 		}
 
 		switch command {
+
 		case "exit 0":
 			os.Exit(0)
+
 		default:
-			fmt.Printf("%s: command not found\n", command)
+			fmt.Fprintf(os.Stdout, "%s: command not found\n", command)
+			fmt.Fprint(os.Stdout, "$ ")
 		}
 	}
 }
