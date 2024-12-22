@@ -39,7 +39,7 @@ func main() {
 
 		case "type":
 			switch commands[1] {
-			case "echo", "type", "error":
+			case "echo", "type", "exit":
 				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
 			default:
 				fmt.Fprintf(os.Stdout, "%s: not found\n", commands[1])
