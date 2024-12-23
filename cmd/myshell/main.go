@@ -42,7 +42,21 @@ func main() {
 			case "echo", "type", "exit":
 				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
 			default:
-				fmt.Fprintf(os.Stdout, "%s: not found\n", commands[1])
+				var found bool
+				env := os.Getenv("PATH")
+				paths := strings.Split(env, ":")
+				for _, path := range paths {
+					exec := path + "/" + commands[1]
+					if _, err := os.Stat(exec); err == nil {
+						fmt.Fprintf(os.Stdout, "%v is %v\n", commands[1], exec)
+						found = true
+						break
+					}
+				}
+				if !found {
+					fmt.Fprintf(os.Stdout, "%s: not found\n", commands[1])
+				}
+
 			}
 			fmt.Fprint(os.Stdout, "$ ")
 		default:
