@@ -50,7 +50,6 @@ func main() {
 					if _, err := os.Stat(exec); err == nil {
 						fmt.Fprintf(os.Stdout, "%v is %v\n", commands[1], exec)
 						found = true
-						break
 					}
 				}
 				if !found {
