@@ -67,7 +67,6 @@ func main() {
 				executable := path + "/" + commands[0]
 				args := commands[1:]
 				if _, err := os.Stat(executable); err == nil {
-					fmt.Println(executable)
 					// Create the command
 					cmd := exec.Command(executable, args...)
 
