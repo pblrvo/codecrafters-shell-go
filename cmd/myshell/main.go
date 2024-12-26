@@ -29,12 +29,19 @@ func main() {
 
 		switch commands[0] {
 
+		case "cd":
+			err := os.Chdir(commands[1])
+
+			if err != nil {
+				fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory", commands[1])
+			}
+			fmt.Fprint(os.Stdout, "$ ")
 		case "pwd":
 			path, err := os.Getwd()
 			if err != nil {
 				log.Println(err)
 			}
-			fmt.Print(path + "\n")
+			fmt.Fprint(os.Stdout, path+"\n")
 			fmt.Fprint(os.Stdout, "$ ")
 		case "exit":
 			code, err := strconv.Atoi(commands[1])
@@ -48,7 +55,7 @@ func main() {
 
 		case "type":
 			switch commands[1] {
-			case "echo", "type", "exit", "pwd":
+			case "echo", "type", "exit", "pwd", "cd":
 				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
 			default:
 				var found bool
