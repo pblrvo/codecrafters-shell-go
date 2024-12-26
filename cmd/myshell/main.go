@@ -76,6 +76,10 @@ func main() {
 }
 
 func cdCommand(commands []string) {
+	if strings.TrimSpace(commands[0]) == "~" {
+		commands[0] = os.Getenv("HOME")
+	}
+
 	err := os.Chdir(commands[0])
 
 	if err != nil {
