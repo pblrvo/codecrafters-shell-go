@@ -48,7 +48,7 @@ func main() {
 
 		case "type":
 			switch commands[1] {
-			case "echo", "type", "exit":
+			case "echo", "type", "exit", "pwd":
 				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
 			default:
 				var found bool
