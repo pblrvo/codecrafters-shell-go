@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -28,6 +29,13 @@ func main() {
 
 		switch commands[0] {
 
+		case "pwd":
+			path, err := os.Getwd()
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Print(path + "\n")
+			fmt.Fprint(os.Stdout, "$ ")
 		case "exit":
 			code, err := strconv.Atoi(commands[1])
 			if err != nil {
