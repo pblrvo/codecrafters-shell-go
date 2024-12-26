@@ -11,8 +11,10 @@ import (
 )
 
 var _ = fmt.Fprint
+var builtinCommands = map[string]int{"echo": 0, "type": 1, "exit": 2, "pwd": 3, "cd": 4}
 
 func main() {
+
 	fmt.Fprint(os.Stdout, "$ ")
 	// Wait for user input
 	reader := bufio.NewReader(os.Stdin)
@@ -25,62 +27,27 @@ func main() {
 			os.Exit(1)
 		}
 
-		commands := strings.Split(message, " ")
+		args := strings.Split(message, " ")
+		command, args := args[0], args[1:]
 
-		switch commands[0] {
+		switch command {
 
 		case "cd":
-			err := os.Chdir(commands[1])
-
-			if err != nil {
-				fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", commands[1])
-			}
-			fmt.Fprint(os.Stdout, "$ ")
+			cdCommand(args)
 		case "pwd":
-			path, err := os.Getwd()
-			if err != nil {
-				log.Println(err)
-			}
-			fmt.Fprint(os.Stdout, path+"\n")
-			fmt.Fprint(os.Stdout, "$ ")
+			pwdCommand(args)
 		case "exit":
-			code, err := strconv.Atoi(commands[1])
-			if err != nil {
-				os.Exit(1)
-			}
-			os.Exit(code)
+			exitCommand(args)
 		case "echo":
-			fmt.Fprintf(os.Stdout, "%s\n", strings.Join(commands[1:], " "))
-			fmt.Fprint(os.Stdout, "$ ")
-
+			echoCommand(args)
 		case "type":
-			switch commands[1] {
-			case "echo", "type", "exit", "pwd", "cd":
-				fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[1])
-			default:
-				var found bool
-				env := os.Getenv("PATH")
-				paths := strings.Split(env, ":")
-				for _, path := range paths {
-					exec := path + "/" + commands[1]
-					if _, err := os.Stat(exec); err == nil {
-						fmt.Fprintf(os.Stdout, "%v is %v\n", commands[1], exec)
-						found = true
-					}
-				}
-				if !found {
-					fmt.Fprintf(os.Stdout, "%s: not found\n", commands[1])
-				}
-
-			}
-			fmt.Fprint(os.Stdout, "$ ")
+			typeCommand(args)
 		default:
 			var executed bool
 			env := os.Getenv("PATH")
 			paths := strings.Split(env, ":")
 			for _, path := range paths {
-				executable := path + "/" + commands[0]
-				args := commands[1:]
+				executable := path + "/" + command
 				if _, err := os.Stat(executable); err == nil {
 					// Create the command
 					cmd := exec.Command(executable, args...)
@@ -101,9 +68,68 @@ func main() {
 			}
 
 			if !executed {
-				fmt.Fprintf(os.Stdout, "%s: command not found\n", commands[0])
+				fmt.Fprintf(os.Stdout, "%s: command not found\n", command)
 				fmt.Fprint(os.Stdout, "$ ")
 			}
 		}
 	}
+}
+
+func cdCommand(commands []string) {
+	err := os.Chdir(commands[0])
+
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", commands[0])
+	}
+	fmt.Fprint(os.Stdout, "$ ")
+}
+
+func pwdCommand(commands []string) {
+	if len(commands) > 1 {
+		fmt.Fprint(os.Stdout, "pwd: too many arguments\n")
+		fmt.Fprint(os.Stdout, "$ ")
+		return
+	}
+
+	path, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Fprint(os.Stdout, path+"\n")
+	fmt.Fprint(os.Stdout, "$ ")
+}
+
+func exitCommand(commands []string) {
+	code, err := strconv.Atoi(commands[0])
+	if err != nil {
+		os.Exit(1)
+	}
+	os.Exit(code)
+}
+
+func echoCommand(commands []string) {
+
+	fmt.Fprintf(os.Stdout, "%s\n", strings.Join(commands, " "))
+	fmt.Fprint(os.Stdout, "$ ")
+}
+
+func typeCommand(commands []string) {
+	if _, exists := builtinCommands[commands[0]]; exists {
+		fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[0])
+	} else {
+		var found bool
+		env := os.Getenv("PATH")
+		paths := strings.Split(env, ":")
+		for _, path := range paths {
+			exec := path + "/" + commands[0]
+			if _, err := os.Stat(exec); err == nil {
+				fmt.Fprintf(os.Stdout, "%v is %v\n", commands[0], exec)
+				found = true
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stdout, "%s: not found\n", commands[0])
+		}
+	}
+	fmt.Fprint(os.Stdout, "$ ")
 }
