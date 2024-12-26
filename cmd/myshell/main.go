@@ -33,7 +33,7 @@ func main() {
 			err := os.Chdir(commands[1])
 
 			if err != nil {
-				fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory", commands[1])
+				fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", commands[1])
 			}
 			fmt.Fprint(os.Stdout, "$ ")
 		case "pwd":
