@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -15,21 +16,40 @@ var builtinCommands = map[string]int{"echo": 0, "type": 1, "exit": 2, "pwd": 3, 
 
 func main() {
 
-	fmt.Fprint(os.Stdout, "$ ")
-	// Wait for user input
-	reader := bufio.NewReader(os.Stdin)
-
 	for {
-		message, err := reader.ReadString('\n')
-		message = strings.Trim(message, "\n")
-
+		fmt.Fprint(os.Stdout, "$ ")
+		// Wait for user input
+		s, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 
-		args := handleQuotes(message)
-		command, args := args[0], args[1:]
+		s = strings.Trim(s, "\r\n")
+		var args []string
+		command, argstr, _ := strings.Cut(s, " ")
+		if strings.Contains(s, "\"") {
+			re := regexp.MustCompile("\"(.*?)\"")
+			args = re.FindAllString(s, -1)
+			for i := range args {
+				args[i] = strings.Trim(args[i], "\"")
+			}
+		} else if strings.Contains(s, "'") {
+			re := regexp.MustCompile("'(.*?)'")
+			args = re.FindAllString(s, -1)
+			for i := range args {
+				args[i] = strings.Trim(args[i], "'")
+			}
+		} else {
+			if strings.Contains(argstr, "\\") {
+				re := regexp.MustCompile(`[^\\] +`)
+				args = re.Split(argstr, -1)
+				for i := range args {
+					args[i] = strings.ReplaceAll(args[i], "\\", "")
+				}
+			} else {
+				args = strings.Fields(argstr)
+			}
+		}
 
 		switch command {
 
@@ -62,7 +82,6 @@ func main() {
 					if err := cmd.Run(); err != nil {
 						fmt.Printf("Error executing file: %v\n", err)
 					} else {
-						fmt.Fprint(os.Stdout, "$ ")
 						executed = true
 					}
 				}
@@ -70,7 +89,6 @@ func main() {
 
 			if !executed {
 				fmt.Fprintf(os.Stdout, "%s: command not found\n", command)
-				fmt.Fprint(os.Stdout, "$ ")
 			}
 		}
 	}
@@ -86,7 +104,6 @@ func cdCommand(commands []string) {
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "cd: %s: No such file or directory\n", commands[0])
 	}
-	fmt.Fprint(os.Stdout, "$ ")
 }
 
 func pwdCommand(commands []string) {
@@ -101,7 +118,6 @@ func pwdCommand(commands []string) {
 		log.Println(err)
 	}
 	fmt.Fprint(os.Stdout, path+"\n")
-	fmt.Fprint(os.Stdout, "$ ")
 }
 
 func exitCommand(commands []string) {
@@ -115,7 +131,6 @@ func exitCommand(commands []string) {
 func echoCommand(commands []string) {
 
 	fmt.Fprintf(os.Stdout, "%s\n", strings.Join(commands, " "))
-	fmt.Fprint(os.Stdout, "$ ")
 }
 
 func typeCommand(commands []string) {
@@ -136,36 +151,4 @@ func typeCommand(commands []string) {
 			fmt.Fprintf(os.Stdout, "%s: not found\n", commands[0])
 		}
 	}
-	fmt.Fprint(os.Stdout, "$ ")
-}
-
-func handleQuotes(message string) []string {
-
-	var tokens []string
-
-	message = strings.ReplaceAll(message, "\\\\", "\\")
-	message = strings.ReplaceAll(message, "\\$", "$")
-	message = strings.ReplaceAll(message, "\\\"", "\\$")
-
-	for {
-		start := strings.IndexAny(message, "'\"")
-
-		if start == -1 {
-			tokens = append(tokens, strings.Fields(message)...)
-			break
-		}
-		ch := message[start]
-		tokens = append(tokens, strings.Fields(message[:start])...)
-		message = message[start+1:]
-		end := strings.IndexByte(message, ch)
-		token := message[:end]
-		tokens = append(tokens, token)
-		message = message[end+1:]
-	}
-
-	for i, val := range tokens {
-		tokens[i] = strings.ReplaceAll(val, "\\$", "\"")
-	}
-
-	return tokens
 }
