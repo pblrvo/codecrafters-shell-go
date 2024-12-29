@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -15,7 +14,6 @@ var _ = fmt.Fprint
 var builtinCommands = map[string]int{"echo": 0, "type": 1, "exit": 2, "pwd": 3, "cd": 4}
 
 func main() {
-
 	for {
 		fmt.Fprint(os.Stdout, "$ ")
 		// Wait for user input
@@ -27,32 +25,12 @@ func main() {
 		s = strings.Trim(s, "\r\n")
 		var args []string
 		command, argstr, _ := strings.Cut(s, " ")
-		if strings.Contains(s, "\"") {
-			re := regexp.MustCompile("\"(.*?)\"")
-			args = re.FindAllString(s, -1)
-			for i := range args {
-				args[i] = strings.Trim(args[i], "\"")
-			}
-		} else if strings.Contains(s, "'") {
-			re := regexp.MustCompile("'(.*?)'")
-			args = re.FindAllString(s, -1)
-			for i := range args {
-				args[i] = strings.Trim(args[i], "'")
-			}
-		} else {
-			if strings.Contains(argstr, "\\") {
-				re := regexp.MustCompile(`[^\\] +`)
-				args = re.Split(argstr, -1)
-				for i := range args {
-					args[i] = strings.ReplaceAll(args[i], "\\", "")
-				}
-			} else {
-				args = strings.Fields(argstr)
-			}
-		}
 
+		// Parse arguments with backslash escape handling
+		args = parseArguments(argstr)
+
+		// Handle the command
 		switch command {
-
 		case "cd":
 			cdCommand(args)
 		case "pwd":
@@ -70,15 +48,12 @@ func main() {
 			for _, path := range paths {
 				executable := path + "/" + command
 				if _, err := os.Stat(executable); err == nil {
-					// Create the command
+					// Create and run the command
 					cmd := exec.Command(executable, args...)
-
-					// Set the command's standard input, output, and error streams
 					cmd.Stdin = os.Stdin
 					cmd.Stdout = os.Stdout
 					cmd.Stderr = os.Stderr
 
-					// Run the command
 					if err := cmd.Run(); err != nil {
 						fmt.Printf("Error executing file: %v\n", err)
 					} else {
@@ -92,6 +67,69 @@ func main() {
 			}
 		}
 	}
+}
+
+// parseArguments handles splitting arguments, respecting backslashes as escape characters
+func parseArguments(input string) []string {
+	var result []string
+	var current string
+	inQuote := false
+	escape := false
+	quoteChar := byte(0) // Track whether we're inside single or double quotes
+
+	for i := 0; i < len(input); i++ {
+		char := input[i]
+
+		// Handle escape character
+		if escape {
+			current += string(char)
+			escape = false
+			continue
+		}
+
+		// Handle backslash as escape character
+		if char == '\\' {
+			escape = true
+			continue
+		}
+
+		// Handle quotes (single or double)
+		if char == '"' || char == '\'' {
+			if inQuote && char == quoteChar {
+				// Closing quote for the current quote type
+				inQuote = false
+				result = append(result, current)
+				current = ""
+			} else if !inQuote {
+				// Opening quote for a string
+				inQuote = true
+				quoteChar = char
+			} else {
+				// Add the quote as part of the current argument
+				current += string(char)
+			}
+			continue
+		}
+
+		// Handle spaces outside of quotes
+		if char == ' ' && !inQuote {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+			continue
+		}
+
+		// Regular character: just append to the current argument
+		current += string(char)
+	}
+
+	// Add the last argument if present
+	if current != "" {
+		result = append(result, current)
+	}
+
+	return result
 }
 
 func cdCommand(commands []string) {
@@ -129,11 +167,12 @@ func exitCommand(commands []string) {
 }
 
 func echoCommand(commands []string) {
-
+	// Print the arguments joined by spaces, preserving escape sequences and quotes
 	fmt.Fprintf(os.Stdout, "%s\n", strings.Join(commands, " "))
 }
 
 func typeCommand(commands []string) {
+	// Logic for the type command (not needed for your current task)
 	if _, exists := builtinCommands[commands[0]]; exists {
 		fmt.Fprintf(os.Stdout, "%s is a shell builtin\n", commands[0])
 	} else {
