@@ -28,7 +28,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		args := handleSingleQuotes(message)
+		args := handleQuotes(message)
 		command, args := args[0], args[1:]
 
 		switch command {
@@ -139,6 +139,42 @@ func typeCommand(commands []string) {
 	fmt.Fprint(os.Stdout, "$ ")
 }
 
+func handleQuotes(message string) []string {
+
+	var tokens []string
+
+	start := strings.Index(message, "\"")
+
+	if start == -1 {
+		return handleSingleQuotes(message)
+	}
+
+	message = strings.ReplaceAll(message, "\\\\", "\\")
+	message = strings.ReplaceAll(message, "\\$", "$")
+	message = strings.ReplaceAll(message, "\\\"", "\\$")
+
+	for {
+		start := strings.Index(message, "\"")
+
+		if start == -1 {
+			tokens = append(tokens, strings.Fields(message)...)
+			break
+		}
+
+		tokens = append(tokens, strings.Fields(message[:start])...)
+		message = message[start+1:]
+		end := strings.Index(message, "\"")
+		token := message[:end]
+		tokens = append(tokens, token)
+		message = message[end+1:]
+	}
+
+	for i, val := range tokens {
+		tokens[i] = strings.ReplaceAll(val, "\\$", "\"")
+	}
+
+	return tokens
+}
 func handleSingleQuotes(message string) []string {
 	var tokens []string
 
