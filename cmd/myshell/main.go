@@ -32,9 +32,26 @@ func parseCommand(s string) (string, []string) {
 	for i := 0; i < len(argstr); i++ {
 		c := argstr[i]
 
-		if escaped && !inSingleQuotes {
-			// Only handle escapes outside of single quotes
-			current.WriteByte(c)
+		if escaped {
+			if !inSingleQuotes {
+				if inDoubleQuotes {
+					// In double quotes, backslash only special for \, $, ", and newline
+					if c == '\\' || c == '$' || c == '"' || c == '\n' {
+						current.WriteByte(c)
+					} else {
+						// For other characters, preserve both \ and the character
+						current.WriteByte('\\')
+						current.WriteByte(c)
+					}
+				} else {
+					// Outside quotes, just preserve the escaped character
+					current.WriteByte(c)
+				}
+			} else {
+				// In single quotes, preserve everything literally
+				current.WriteByte('\\')
+				current.WriteByte(c)
+			}
 			escaped = false
 			continue
 		}
@@ -44,7 +61,6 @@ func parseCommand(s string) (string, []string) {
 			if !inSingleQuotes {
 				escaped = true
 			} else {
-				// Inside single quotes, preserve the backslash
 				current.WriteByte(c)
 			}
 		case '"':
