@@ -14,23 +14,20 @@ var _ = fmt.Fprint
 var builtinCommands = map[string]int{"echo": 0, "type": 1, "exit": 2, "pwd": 3, "cd": 4}
 
 func parseCommand(s string) (string, []string) {
-	parts := strings.SplitN(s, " ", 2)
-	command := parts[0]
-
-	if len(parts) == 1 {
-		return command, nil
+	if s == "" {
+		return "", nil
 	}
 
-	argstr := parts[1]
+	var command strings.Builder
 	var args []string
-
 	var current strings.Builder
 	inDoubleQuotes := false
 	inSingleQuotes := false
 	escaped := false
+	commandParsed := false
 
-	for i := 0; i < len(argstr); i++ {
-		c := argstr[i]
+	for i := 0; i < len(s); i++ {
+		c := s[i]
 
 		if escaped {
 			if !inSingleQuotes {
@@ -44,7 +41,6 @@ func parseCommand(s string) (string, []string) {
 						current.WriteByte(c)
 					}
 				} else {
-					// Outside quotes, just preserve the escaped character
 					current.WriteByte(c)
 				}
 			} else {
@@ -78,7 +74,12 @@ func parseCommand(s string) (string, []string) {
 		case ' ':
 			if !inDoubleQuotes && !inSingleQuotes {
 				if current.Len() > 0 {
-					args = append(args, current.String())
+					if !commandParsed {
+						command.WriteString(current.String())
+						commandParsed = true
+					} else {
+						args = append(args, current.String())
+					}
 					current.Reset()
 				}
 			} else {
@@ -89,11 +90,16 @@ func parseCommand(s string) (string, []string) {
 		}
 	}
 
+	// Handle the last token
 	if current.Len() > 0 {
-		args = append(args, current.String())
+		if !commandParsed {
+			command.WriteString(current.String())
+		} else {
+			args = append(args, current.String())
+		}
 	}
 
-	return command, args
+	return command.String(), args
 }
 
 func main() {
@@ -111,6 +117,9 @@ func main() {
 		}
 
 		command, args := parseCommand(s)
+		if command == "" {
+			continue
+		}
 
 		switch command {
 		case "cd":
@@ -127,6 +136,8 @@ func main() {
 			var executed bool
 			env := os.Getenv("PATH")
 			paths := strings.Split(env, ":")
+
+			// Search in PATH first
 			for _, path := range paths {
 				executable := path + "/" + command
 				if _, err := os.Stat(executable); err == nil {
@@ -141,6 +152,22 @@ func main() {
 						executed = true
 					}
 					break
+				}
+			}
+
+			// If not found in PATH, try as absolute/relative path
+			if !executed {
+				if _, err := os.Stat(command); err == nil {
+					cmd := exec.Command(command, args...)
+					cmd.Stdin = os.Stdin
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+
+					if err := cmd.Run(); err != nil {
+						fmt.Printf("Error executing file: %v\n", err)
+					} else {
+						executed = true
+					}
 				}
 			}
 
