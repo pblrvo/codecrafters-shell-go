@@ -22,12 +22,13 @@ func main() {
 	for {
 		message, err := reader.ReadString('\n')
 		message = strings.Trim(message, "\n")
+
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		args := strings.Split(message, " ")
+		args := handleSingleQuotes(message)
 		command, args := args[0], args[1:]
 
 		switch command {
@@ -136,4 +137,26 @@ func typeCommand(commands []string) {
 		}
 	}
 	fmt.Fprint(os.Stdout, "$ ")
+}
+
+func handleSingleQuotes(message string) []string {
+	var tokens []string
+
+	for {
+		start := strings.Index(message, "'")
+
+		if start == -1 {
+			tokens = append(tokens, strings.Fields(message)...)
+			break
+		}
+
+		tokens = append(tokens, strings.Fields(message[:start])...)
+		message = message[start+1:]
+		end := strings.Index(message, "'")
+		token := message[:end]
+		tokens = append(tokens, token)
+		message = message[end+1:]
+	}
+
+	return tokens
 }
