@@ -143,27 +143,21 @@ func handleQuotes(message string) []string {
 
 	var tokens []string
 
-	start := strings.Index(message, "\"")
-
-	if start == -1 {
-		return handleSingleQuotes(message)
-	}
-
 	message = strings.ReplaceAll(message, "\\\\", "\\")
 	message = strings.ReplaceAll(message, "\\$", "$")
 	message = strings.ReplaceAll(message, "\\\"", "\\$")
 
 	for {
-		start := strings.Index(message, "\"")
+		start := strings.IndexAny(message, "'\"")
 
 		if start == -1 {
 			tokens = append(tokens, strings.Fields(message)...)
 			break
 		}
-
+		ch := message[start]
 		tokens = append(tokens, strings.Fields(message[:start])...)
 		message = message[start+1:]
-		end := strings.Index(message, "\"")
+		end := strings.IndexByte(message, ch)
 		token := message[:end]
 		tokens = append(tokens, token)
 		message = message[end+1:]
@@ -171,27 +165,6 @@ func handleQuotes(message string) []string {
 
 	for i, val := range tokens {
 		tokens[i] = strings.ReplaceAll(val, "\\$", "\"")
-	}
-
-	return tokens
-}
-func handleSingleQuotes(message string) []string {
-	var tokens []string
-
-	for {
-		start := strings.Index(message, "'")
-
-		if start == -1 {
-			tokens = append(tokens, strings.Fields(message)...)
-			break
-		}
-
-		tokens = append(tokens, strings.Fields(message[:start])...)
-		message = message[start+1:]
-		end := strings.Index(message, "'")
-		token := message[:end]
-		tokens = append(tokens, token)
-		message = message[end+1:]
 	}
 
 	return tokens
