@@ -14,7 +14,6 @@ var _ = fmt.Fprint
 var builtinCommands = map[string]int{"echo": 0, "type": 1, "exit": 2, "pwd": 3, "cd": 4}
 
 func parseCommand(s string) (string, []string) {
-	// Split into command and args, preserving spaces after backslashes
 	parts := strings.SplitN(s, " ", 2)
 	command := parts[0]
 
@@ -25,7 +24,6 @@ func parseCommand(s string) (string, []string) {
 	argstr := parts[1]
 	var args []string
 
-	// Handle different quoting scenarios
 	var current strings.Builder
 	inDoubleQuotes := false
 	inSingleQuotes := false
@@ -34,8 +32,8 @@ func parseCommand(s string) (string, []string) {
 	for i := 0; i < len(argstr); i++ {
 		c := argstr[i]
 
-		if escaped {
-			// Handle escaped character
+		if escaped && !inSingleQuotes {
+			// Only handle escapes outside of single quotes
 			current.WriteByte(c)
 			escaped = false
 			continue
@@ -43,9 +41,10 @@ func parseCommand(s string) (string, []string) {
 
 		switch c {
 		case '\\':
-			if !inSingleQuotes { // Backslashes are literal in single quotes
+			if !inSingleQuotes {
 				escaped = true
 			} else {
+				// Inside single quotes, preserve the backslash
 				current.WriteByte(c)
 			}
 		case '"':
@@ -74,7 +73,6 @@ func parseCommand(s string) (string, []string) {
 		}
 	}
 
-	// Add the last argument if there is one
 	if current.Len() > 0 {
 		args = append(args, current.String())
 	}
